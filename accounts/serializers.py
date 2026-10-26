@@ -26,18 +26,27 @@ class AdminRegisterSerializer(serializers.Serializer):
 class SuperAdminRegisterSerializer(serializers.Serializer):
     name = serializers.CharField()
     phone = serializers.CharField(required=False, allow_blank=True)
-    email = serializers.EmailField()
+    username = serializers.CharField(required=False, allow_blank=True)
+    email = serializers.EmailField(required=False, allow_blank=True)
     password = serializers.CharField()
 
-    def validate_email(self, value):
-        if User.objects.filter(username__iexact=value).exists() or User.objects.filter(email__iexact=value).exists():
-            raise serializers.ValidationError("A user with this email already exists.")
-        return value
+    def validate(self, attrs):
+        username = (attrs.get("username") or attrs.get("email") or "").strip()
+        email = (attrs.get("email") or "").strip()
+        if not username:
+            raise serializers.ValidationError({"username": "Username or email is required."})
+        if User.objects.filter(username__iexact=username).exists():
+            raise serializers.ValidationError({"username": "This username is already in use."})
+        if email and User.objects.filter(email__iexact=email).exists():
+            raise serializers.ValidationError({"email": "A user with this email already exists."})
+        attrs["username"] = username
+        attrs["email"] = email
+        return attrs
 
     def create(self, validated_data):
         return User.objects.create_user(
-            username=validated_data["email"],
-            email=validated_data["email"],
+            username=validated_data["username"],
+            email=validated_data.get("email", ""),
             password=validated_data["password"],
             user_type="super_admin",
             phone=validated_data.get("phone", ""),
