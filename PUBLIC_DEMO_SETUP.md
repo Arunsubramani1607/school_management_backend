@@ -9,8 +9,8 @@ database, and frontend project for it.
 
 1. Create a Render PostgreSQL database in the same region as the demo backend.
 2. Set `DATABASE_URL` on the backend to that database's **internal** connection
-   URL. The backend uses PostgreSQL when `DATABASE_URL` is set and SQLite for
-   local development otherwise.
+   URL. The backend requires PostgreSQL and stops at startup if `DATABASE_URL`
+   is missing or does not use a PostgreSQL URL.
 3. Attach a persistent disk to the backend with mount path `/var/data`. This
    stores uploaded media and the private JSON recovery backup.
 4. Set the backend Start Command to `/app/docker-entrypoint.sh` if a custom

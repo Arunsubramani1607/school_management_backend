@@ -207,44 +207,30 @@ CHANNEL_LAYERS = {
     },
 }
 
-# # Database
-# DATABASES = {
-#     'default': {
-#         'ENGINE': os.getenv('DB_ENGINE', 'django.db.backends.postgresql'),
-#         'NAME': os.getenv('DB_NAME', 'school_db_v1'),
-#         'USER': os.getenv('DB_USER', 'postgres'),
-#         'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
-#         'HOST': os.getenv('DB_HOST', 'localhost'),
-#         'PORT': os.getenv('DB_PORT', '5432'),
-#     }
-# }
-
 APP_DATA_DIR = os.getenv('APP_DATA_DIR')
 if not APP_DATA_DIR:
     render_disk_path = Path('/var/data')
     APP_DATA_DIR = str(render_disk_path if render_disk_path.is_dir() else BASE_DIR / 'data')
 Path(APP_DATA_DIR).mkdir(parents=True, exist_ok=True)
 
-SQLITE_DB_PATH = os.getenv('DB_NAME', str(Path(APP_DATA_DIR) / 'db.sqlite3'))
 JSON_DATABASE_BACKUP = os.getenv(
     'JSON_DATABASE_BACKUP',
     str(Path(APP_DATA_DIR) / 'school_data_backup.json'),
 )
 
 DATABASE_URL = os.getenv('DATABASE_URL', '').strip()
-if DATABASE_URL:
-    import dj_database_url
+if not DATABASE_URL:
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured('DATABASE_URL must point to the PostgreSQL database.')
+if not DATABASE_URL.startswith(('postgres://', 'postgresql://')):
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured('Only PostgreSQL DATABASE_URL values are supported.')
 
-    DATABASES = {
-        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600),
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': SQLITE_DB_PATH,
-        }
-    }
+import dj_database_url
+
+DATABASES = {
+    'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600),
+}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

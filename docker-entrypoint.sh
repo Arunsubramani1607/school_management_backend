@@ -15,10 +15,6 @@ if [ "${RENDER:-}" = "true" ] || [ -n "${RENDER_EXTERNAL_HOSTNAME:-}" ]; then
     fi
 fi
 
-# Move the old container-local default onto the Render disk path.
-if [ -z "${DB_NAME:-}" ] || [ "$DB_NAME" = "/app/db.sqlite3" ]; then
-    export DB_NAME="$APP_DATA_DIR/db.sqlite3"
-fi
 export JSON_DATABASE_BACKUP="${JSON_DATABASE_BACKUP:-$APP_DATA_DIR/school_data_backup.json}"
 export JSON_DATABASE_BACKUP_INTERVAL="${JSON_DATABASE_BACKUP_INTERVAL:-300}"
 
