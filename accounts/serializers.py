@@ -52,6 +52,7 @@ class SuperAdminRegisterSerializer(serializers.Serializer):
             phone=validated_data.get("phone", ""),
             first_name=validated_data["name"],
             is_staff=True,
+            is_superuser=True,
         )
 
 
