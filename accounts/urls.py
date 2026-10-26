@@ -5,7 +5,6 @@ from .views import (
     SuperAdminRegisterView,
     SchoolRegisterView, 
     LoginView, 
-    VerifyOTPView,
 )
 # 2. Import the NEW OTP views from views_otp.py
 from .views_otp import (
@@ -23,7 +22,6 @@ urlpatterns = [
 
     # --- Login & Authentication ---
     path("login/", LoginView.as_view(), name='login'),
-    path("verify-otp/", VerifyOTPView.as_view(), name='verify_otp'),
 
 
     path('password-reset/request/', RequestPasswordResetOTP.as_view(), name='request-otp'),

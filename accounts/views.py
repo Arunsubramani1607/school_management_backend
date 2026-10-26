@@ -1,18 +1,12 @@
-from venv import logger
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, generics
+from rest_framework import generics
 from rest_framework.authtoken.models import Token
-from django.contrib.auth import authenticate, login
-from django.core.cache import cache
+from django.contrib.auth import authenticate
 from django.core.exceptions import ObjectDoesNotExist 
 from django.utils import timezone
 
 import secrets
-import random
-from django.core.mail import send_mail
-from django.conf import settings
 
 from rest_framework.permissions import AllowAny
 
@@ -30,7 +24,6 @@ from students.models import (
     STUDENT_PERMISSION_LABELS,
     default_student_role_permissions,
 )
-from .external_admin_access import verify_admin_external_access
 from teachers.models import TEACHER_PERMISSION_GROUPS, TEACHER_PERMISSION_LABELS, default_teacher_role_permissions
 from staff.models import STAFF_PERMISSION_GROUPS, STAFF_PERMISSION_LABELS, default_staff_role_permissions
 
@@ -126,65 +119,9 @@ class LoginView(APIView):
                 user = authenticate(username=matched_user.username, password=password)
 
         if user is not None:
-            # --- CASE A: ADMIN / SUPER ADMIN (Requires 2FA) ---
-            if user.user_type in ('admin', 'super_admin'):
-                # if user.user_type == 'admin':
-                #     allowed, reason = verify_admin_external_access(user)
-                #     if not allowed:
-                #         return Response(
-                #             {
-                #                 "error": "Admin access is not authorized.",
-                #                 "reason": reason,
-                #             },
-                #             status=403,
-                #         )
+            return self.finalize_login(user)
 
-                otp = getattr(settings, "MANUAL_ADMIN_OTP", "6258")
-                cache.set(f'otp_{user.username}', otp, timeout=300)
-
-                logger.info(user.email)
-
-                otp_sent_to = "manual"
-                message = "OTP required (manual)."
-
-                # --- SEND OTP TO EMAIL (Optional) ---
-                if getattr(settings, "OTP_REQUIRED", True):
-                    if not user.email:
-                        return Response({"error": "No email linked to admin account."}, status=400)
-
-                    masked_email = user.email[0] + "****" + user.email[user.email.find('@'):]
-
-                    try:
-                        send_mail(
-                            subject="Your Login OTP",
-                            message=f"Hello {user.username},\n\nYour login OTP is: {otp}\n\nValid for 5 minutes.",
-                            from_email=settings.DEFAULT_FROM_EMAIL,
-                            recipient_list=[user.email],
-                            fail_silently=False,
-                        )
-                    except Exception as e:
-                        return Response({"error": f"Failed to send OTP email: {str(e)}"}, status=500)
-
-                    otp_sent_to = "email"
-                    message = f"OTP sent to {masked_email}"
-
-                return Response(
-                    {
-                        "message": message,
-                        "status": "2FA_REQUIRED",
-                        "user_type": user.user_type,
-                        "username": user.username,
-                        "otp_sent_to": otp_sent_to,
-                    },
-                    status=200,
-                )
-
-            # --- CASE B: OTHERS (Direct Login) ---
-            else:
-                return self.finalize_login(user)
-
-        else:
-            return Response({"error": "Invalid Credentials"}, status=401)
+        return Response({"error": "Invalid Credentials"}, status=401)
 
     def finalize_login(self, user):
         """Helper function to generate encryption keys and return success response"""
@@ -329,29 +266,3 @@ class LoginView(APIView):
             response_data['staff_permission_labels'] = STAFF_PERMISSION_LABELS
 
         return Response(response_data, status=200)
-
-
-class VerifyOTPView(APIView):
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        username = request.data.get('username')
-        otp_input = request.data.get('otp')
-
-        if not username or not otp_input:
-            return Response({"error": "Username and OTP required"}, status=400)
-
-        saved_otp = cache.get(f'otp_{username}')
-
-        if saved_otp and str(saved_otp) == str(otp_input):
-            try:
-                user = User.objects.get(username=username)
-                cache.delete(f'otp_{username}')
-                login_view = LoginView()
-                login_view.request = request
-                return login_view.finalize_login(user)
-            except User.DoesNotExist:
-                return Response({"error": "User not found"}, status=404)
-        else:
-            return Response({"error": "Invalid or Expired OTP"}, status=400)
-
