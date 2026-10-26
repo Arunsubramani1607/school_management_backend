@@ -11,11 +11,9 @@ database, and frontend project for it.
 2. Set `DATABASE_URL` on the backend to that database's **internal** connection
    URL. The backend requires PostgreSQL and stops at startup if `DATABASE_URL`
    is missing or does not use a PostgreSQL URL.
-3. Attach a persistent disk to the backend with mount path `/var/data`. This
-   stores uploaded media and the private JSON recovery backup.
-4. Set the backend Start Command to `/app/docker-entrypoint.sh` if a custom
+3. Set the backend Start Command to `sh docker-entrypoint.sh` if a custom
    Start Command is configured in Render.
-5. Set the following backend environment variables:
+4. Set the following backend environment variables:
 
 ```text
 DEBUG=false
@@ -23,9 +21,6 @@ SECRET_KEY=<a new random secret, at least 50 characters>
 ALLOWED_HOSTS=school-management-backend-gsza.onrender.com
 CORS_ALLOWED_ORIGINS=https://school-management-frontend-woad.vercel.app
 CSRF_TRUSTED_ORIGINS=https://school-management-frontend-woad.vercel.app
-APP_DATA_DIR=/var/data
-JSON_DATABASE_BACKUP=/var/data/school_data_backup.json
-JSON_DATABASE_BACKUP_INTERVAL=300
 DEMO_MODE=true
 BOOTSTRAP_SUPER_ADMIN_EMAIL=<private institution admin email>
 BOOTSTRAP_SUPER_ADMIN_PASSWORD=<private password, at least 12 characters>
@@ -53,10 +48,12 @@ password in a `NEXT_PUBLIC_` variable.
 
 ## Demo data and accounts
 
-At startup, the service migrates the database, restores a JSON fixture if the
-application database is empty, bootstraps the private super-admin only if one
-does not exist, and seeds synthetic demo records when `DEMO_MODE=true`. The
-seed contains Demo School, academic year 2026–2027, 12 classes, 24 sections,
+At startup, the service migrates PostgreSQL, bootstraps the private super-admin
+only if one does not exist, and creates synthetic demo records when
+`DEMO_MODE=true`. The seed command is idempotent, so restarts keep existing
+records and fill in missing demo records. PostgreSQL is the persistent source
+of truth; no backend disk or local JSON backup is required. The seed contains
+Demo School, academic year 2026–2027, 12 classes, 24 sections,
 24 teachers, 48 students, 8 staff, subjects, and five weekdays of student,
 teacher, and staff attendance. The school/admin registration endpoints require
 an authenticated super-admin; public super-admin registration is removed.
@@ -76,11 +73,14 @@ for the dedicated demo database.
 
 ## Backups and secrets
 
-The database is backed up to a private JSON fixture every five minutes. The
-backup is excluded from Git and the Docker build context. It contains personal
-demo records and password hashes, so do not publish it or commit it. Render's
-PostgreSQL backups are the recovery option for the database; the JSON fixture
-is an additional recovery copy for restoring an empty application database.
+The Render web service filesystem is ephemeral. Uploaded media stored by the
+backend can disappear on restart or redeploy; use external object storage if
+the demo needs durable uploads. The database is stored in PostgreSQL. Render
+Free PostgreSQL expires after 30 days and does not include managed backups, so
+export it regularly with `pg_dump` or use a database plan/provider with backups.
+The `backup_json_database` command can create a manual JSON export, but save
+that export outside the Render service because its local filesystem is not
+persistent.
 
 Payment integrations are disabled by default. The old Razorpay values were
 present in source defaults; rotate any keys that were real, and add only new

@@ -207,10 +207,9 @@ CHANNEL_LAYERS = {
     },
 }
 
-APP_DATA_DIR = os.getenv('APP_DATA_DIR')
-if not APP_DATA_DIR:
-    render_disk_path = Path('/var/data')
-    APP_DATA_DIR = str(render_disk_path if render_disk_path.is_dir() else BASE_DIR / 'data')
+# Render's filesystem is ephemeral. Keep temporary media/JSON exports writable
+# without requiring a persistent disk; PostgreSQL holds all durable app data.
+APP_DATA_DIR = '/tmp/school_management_data'
 Path(APP_DATA_DIR).mkdir(parents=True, exist_ok=True)
 
 JSON_DATABASE_BACKUP = os.getenv(
