@@ -2,7 +2,6 @@ from django.urls import path
 from .views_otp import RequestPasswordResetOTP, ResetPasswordConfirm
 from .views import (
     AdminRegisterView, 
-    SuperAdminRegisterView,
     SchoolRegisterView, 
     LoginView, 
 )
@@ -17,7 +16,6 @@ urlpatterns = [
     # --- Registration ---
     # REMOVED "setup/" from here so the URL is cleaner
     path("admin-register/", AdminRegisterView.as_view(), name='admin_register'),
-    path("super-admin-register/", SuperAdminRegisterView.as_view(), name='super_admin_register'),
     path("school-register/", SchoolRegisterView.as_view(), name='school_register'),
 
     # --- Login & Authentication ---

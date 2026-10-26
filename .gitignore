@@ -1,5 +1,8 @@
 __pycache__/
 *.py[cod]
+data/
+school_data_backup.json
+.*.json.tmp
 .venv/
 venv/
 firebase_credentials.json

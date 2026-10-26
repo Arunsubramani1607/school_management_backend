@@ -7,6 +7,9 @@ venv
 __pycache__
 *.py[cod]
 *.sqlite3
+data/
+school_data_backup.json
+.*.json.tmp
 firebase_credentials.json
 full_data.json
 .DS_Store

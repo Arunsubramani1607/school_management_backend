@@ -15,6 +15,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+RUN chmod +x /app/docker-entrypoint.sh
+
 EXPOSE 8000
 
-CMD ["sh", "-c", "python manage.py migrate --noinput && exec daphne -b 0.0.0.0 -p ${PORT:-8000} config.asgi:application"]
+CMD ["/app/docker-entrypoint.sh"]

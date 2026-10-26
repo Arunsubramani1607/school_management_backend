@@ -8,12 +8,12 @@ from django.utils import timezone
 
 import secrets
 
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 
 from accounts.models import User
 from school.models import School
 from schooladmin.models import AdminProfile
-from .serializers import AdminRegisterSerializer, SchoolRegisterSerializer, SuperAdminRegisterSerializer
+from .serializers import AdminRegisterSerializer, SchoolRegisterSerializer
 
 # --- Ensure these imports are at the top of accounts/views.py ---
 from school.models import AcademicYear
@@ -26,6 +26,7 @@ from students.models import (
 )
 from teachers.models import TEACHER_PERMISSION_GROUPS, TEACHER_PERMISSION_LABELS, default_teacher_role_permissions
 from staff.models import STAFF_PERMISSION_GROUPS, STAFF_PERMISSION_LABELS, default_staff_role_permissions
+from schooladmin.permissions import IsSuperAdmin
 
 
 # ==========================================
@@ -33,7 +34,7 @@ from staff.models import STAFF_PERMISSION_GROUPS, STAFF_PERMISSION_LABELS, defau
 # ==========================================
 
 class AdminRegisterView(generics.GenericAPIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
     serializer_class = AdminRegisterSerializer
 
     def post(self, request):
@@ -47,27 +48,8 @@ class AdminRegisterView(generics.GenericAPIView):
         }, status=200)
 
 
-class SuperAdminRegisterView(generics.GenericAPIView):
-    permission_classes = [AllowAny]
-    serializer_class = SuperAdminRegisterSerializer
-
-    def post(self, request):
-        if User.objects.filter(user_type="super_admin").exists():
-            return Response({"message": "Super admin already registered"}, status=400)
-
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        super_admin = serializer.save()
-
-        return Response({
-            "message": "Super admin registered successfully",
-            "name": super_admin.first_name,
-            "username": super_admin.username,
-        }, status=200)
-
-
 class SchoolRegisterView(generics.GenericAPIView):
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
     serializer_class = SchoolRegisterSerializer
 
     def post(self, request):
